@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Heap Visualizer Pro++</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+    transition: 0.3s;
+}
+
+/* DARK MODE */
+.dark {
+    background: #1e1e2f;
+    color: white;
+}
+
+/* TOPBAR */
+.topbar {
+    padding: 15px;
+    text-align: center;
+    background: rgba(255,255,255,0.3);
+    backdrop-filter: blur(10px);
+}
+
+.topbar h2 {
+    margin: 0;
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 5px #fff; }
+    to { text-shadow: 0 0 20px #00f2fe; }
+}
+
+/* LAYOUT */
+.container {
+    display: flex;
+    height: calc(100vh - 90px);
+}
+
+/* PANELS */
+.sidebar, .rightpanel {
+    width: 240px;
+    padding: 15px;
+    background: rgba(255,255,255,0.3);
+    backdrop-filter: blur(10px);
+}
+
+.main {
+    flex: 1;
+    position: relative;
+    background: rgba(255,255,255,0.2);
+}
+
+/* INPUTS */
+input, select, button {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    background: #00c6ff;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0072ff;
+}
+
+/* TREE */
+#tree {
+    position: relative;
+    height: 100%;
+}
+
+/* NODE */
+.node {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    animation: pop 0.4s ease;
+    transition: 0.5s;
+}
+
+.node:hover {
+    transform: scale(1.2);
+}
+
+/* POP ANIMATION */
+@keyframes pop {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+/* ACTIVE */
+.active {
+    background: #00f2fe !important;
+    box-shadow: 0 0 20px #00f2fe;
+    transform: scale(1.3);
+}
+
+/* LINES */
+svg {
+    position: absolute;
+}
+
+line {
+    stroke: #555;
+    stroke-width: 2;
+}
+</style>
+
+</head>
+<body>
+
+<div class="topbar">
+    <h2>🌳 Heap Visualizer Pro++</h2>
+</div>
+
+<div class="container">
+
+<!-- LEFT PANEL -->
+<div class="sidebar">
+    <h3>Controls</h3>
+
+    <select id="type">
+        <option value="min">Min Heap</option>
+        <option value="max">Max Heap</option>
+    </select>
+
+    <select id="theme">
+        <option value="normal">Normal</option>
+        <option value="hospital">Hospital</option>
+        <option value="game">Leaderboard</option>
+    </select>
+
+    <input type="number" id="value" placeholder="Enter value">
+
+    <button onclick="insert()">Insert</button>
+    <button onclick="deleteRoot()">Delete Root</button>
+    <button onclick="demo()">Auto Demo</button>
+    <button onclick="toggleMode()">Toggle Dark Mode</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+    <div id="tree"></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="rightpanel">
+    <h3>Heap Info</h3>
+    <p id="nodes">Nodes: 0</p>
+    <p id="height">Height: 0</p>
+    <p id="array"></p>
+</div>
+
+</div>
+
+<script>
+let heap = [];
+
+/* SOUND */
+function playSound(){
+    let audio = new Audio("https://www.soundjay.com/buttons/sounds/button-09.mp3");
+    audio.play();
+}
+
+/* COMPARE */
+function compare(a,b){
+    return document.getElementById("type").value === "min" ? a<b : a>b;
+}
+
+/* INSERT */
+function insert(){
+    let val = document.getElementById("value").value;
+    if(!val) return;
+
+    heap.push(parseInt(val));
+    heapifyUp(heap.length-1);
+}
+
+/* HEAPIFY UP */
+async function heapifyUp(i){
+    if(i===0) return render();
+
+    let p=Math.floor((i-1)/2);
+
+    if(compare(heap[i],heap[p])){
+        highlight(i,p);
+        playSound();
+        await sleep(700);
+
+        [heap[i],heap[p]]=[heap[p],heap[i]];
+        render();
+        await heapifyUp(p);
+    } else render();
+}
+
+/* DELETE */
+function deleteRoot(){
+    if(heap.length===0) return;
+
+    heap[0]=heap[heap.length-1];
+    heap.pop();
+    heapifyDown(0);
+}
+
+/* HEAPIFY DOWN */
+async function heapifyDown(i){
+    let l=2*i+1, r=2*i+2, t=i;
+
+    if(l<heap.length && compare(heap[l],heap[t])) t=l;
+    if(r<heap.length && compare(heap[r],heap[t])) t=r;
+
+    if(t!==i){
+        highlight(i,t);
+        playSound();
+        await sleep(700);
+
+        [heap[i],heap[t]]=[heap[t],heap[i]];
+        render();
+        await heapifyDown(t);
+    } else render();
+}
+
+/* HIGHLIGHT */
+function highlight(i,j){
+    render();
+    setTimeout(()=>{
+        document.getElementById("node-"+i)?.classList.add("active");
+        document.getElementById("node-"+j)?.classList.add("active");
+    },100);
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+/* RENDER */
+function render(){
+    const tree=document.getElementById("tree");
+    tree.innerHTML="";
+
+    let width=tree.clientWidth;
+    let svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width","100%");
+    svg.setAttribute("height","100%");
+    tree.appendChild(svg);
+
+    let pos=[];
+    let theme=document.getElementById("theme").value;
+
+    heap.forEach((v,i)=>{
+        let lvl=Math.floor(Math.log2(i+1));
+        let p=i-(Math.pow(2,lvl)-1);
+
+        let gap=width/(Math.pow(2,lvl)+1);
+        let x=gap*(p+1);
+        let y=lvl*100+20;
+
+        pos[i]={x,y};
+
+        let node=document.createElement("div");
+        node.className="node";
+        node.id="node-"+i;
+        node.innerText=v;
+
+        if(theme==="hospital") node.style.background="#ff6b6b";
+        if(theme==="game") node.style.background="#6bffb3";
+
+        node.style.left=x+"px";
+        node.style.top=y+"px";
+
+        tree.appendChild(node);
+    });
+
+    heap.forEach((v,i)=>{
+        if(i===0) return;
+        let p=Math.floor((i-1)/2);
+
+        let line=document.createElementNS("http://www.w3.org/2000/svg","line");
+        line.setAttribute("x1",pos[p].x+25);
+        line.setAttribute("y1",pos[p].y+25);
+        line.setAttribute("x2",pos[i].x+25);
+        line.setAttribute("y2",pos[i].y+25);
+
+        svg.appendChild(line);
+    });
+
+    document.getElementById("nodes").innerText="Nodes: "+heap.length;
+    document.getElementById("height").innerText="Height: "+Math.floor(Math.log2(heap.length||1));
+    document.getElementById("array").innerText="Array: ["+heap.join(", ")+"]";
+}
+
+/* DARK MODE */
+function toggleMode(){
+    document.body.classList.toggle("dark");
+}
+
+/* AUTO DEMO */
+async function demo(){
+    let values=[50,30,70,10,40,60,90];
+    for(let v of values){
+        document.getElementById("value").value=v;
+        insert();
+        await sleep(1000);
+    }
+}
+</script>
+
+</body>
+</html>
